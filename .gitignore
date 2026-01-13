@@ -1,4 +1,6 @@
 _build/
+.env
+.ipynb_checkpoints
 .technote/
 .tox/
 venv/
