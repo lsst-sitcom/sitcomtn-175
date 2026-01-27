@@ -1,0 +1,19 @@
+[tool.lsst_versions]
+write_to = "python/lsst/sitcom/tn175/version.py"
+
+[tool.isort]
+profile = "black"
+line_length = 110
+known_first_party = ["lsst", "tests"]
+
+[tool.black]
+line-length = 110
+target-version = ["py311"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py311"
+exclude = [
+    "__init__.py",
+    "config/*",
+]
