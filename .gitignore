@@ -8,3 +8,6 @@ _build/
 .tox/
 venv/
 .venv/
+
+# Ignore notebook files
+**/.ipynb_checkpoints
