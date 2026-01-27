@@ -1,6 +1,9 @@
 _build/
 .env
+<<<<<<< HEAD
 .ipynb_checkpoints
+=======
+>>>>>>> 8e3689c (Add .env file to .gitignore and create script to generate environment variables)
 .technote/
 .tox/
 venv/
