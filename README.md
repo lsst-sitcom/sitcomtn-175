@@ -43,3 +43,22 @@ When you push changes to a another branch, a preview of the technote is publishe
 The main content of this technote is in `index.md` (a Markdown file parsed as [CommonMark/MyST](https://myst-parser.readthedocs.io/en/latest/index.html)).
 Metadata and configuration is in the `technote.toml` file.
 For guidance on creating content and information about specifying metadata and configuration, see the Documenteer documentation: https://documenteer.lsst.io/technotes.
+
+## Installing as a Python Package
+
+The notebooks in the `./notebook` folder use the code in the `./python` folder as a package. You will need to install this package using EUPS. Here are the steps:
+
+```
+# Declare the package
+eups declare lsst_sitcom_tn175 v1 -r $PATH_TO_THIS_REPO/sitcomtn-175
+
+# Install it
+setup lsst_sitcom_tn175
+
+# Test it
+python -c "import lsst.sitcom.tn175; print(lsst.sitcom.tn175.__version__)"
+```
+
+The last command line should print the package version. It is Ok if it prints `?`, since versioning might not be fully implemented yet.
+
+If you are running the notebooks in Nublado, you will have to update the `$HOME/notebooks/.user_setups` file with the same lines above. 
