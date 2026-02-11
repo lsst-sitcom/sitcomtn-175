@@ -6,8 +6,7 @@
 ## SITCOMTN-175
 
 We are seeing variation in the filter change look-up-table that we do not understand yet. 
-The focus offset that we need to apply is varying during the night and between night, and sometimes it is fixed. 
-We need to look into the variation of that require focus offset as a function of other telescope parameter to understand the cause.
+The focus offset that we need to apply is varying during the night and between night, and sometimes it is fixed. We need to look into the variation of that require focus offset as a function of other telescope parameter to understand the cause.
 
 **Links:**
 
