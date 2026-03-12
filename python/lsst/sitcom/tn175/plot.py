@@ -88,7 +88,7 @@ def _setup_figure_and_data(df: pd.DataFrame):
     step = max(1, len(df) // 18)
     tick_df = df.iloc[::step]
     js_labels = {
-        int(ms): str(int(v))[-5:]
+        int(ms): str(int(v))[-3:]
         for ms, v in zip(tick_df["obs_start_ms"], tick_df["visit"])
     }
     p.add_layout(
@@ -166,7 +166,7 @@ def plot_fwhm_metrics(df: pd.DataFrame):
     # ── Hover ─────────────────────────────────────────────────────────────────
     p.add_tools(HoverTool(
         renderers=line_renderers,
-        mode="vline",
+        mode="mouse",
         tooltips=[
             ("Visit", "@visit"),
             ("Time", "@obs_start"),
@@ -234,7 +234,7 @@ def plot_ccd_z4(df: pd.DataFrame, corner_detectors: list = CORNER_DETECTORS):
     # ── Hover ─────────────────────────────────────────────────────────────────
     p.add_tools(HoverTool(
         renderers=line_renderers,
-        mode="vline",
+        mode="mouse",
         tooltips=[
             ("Visit", "@visit"),
             ("Time", "@obs_start"),
@@ -298,7 +298,7 @@ def plot_ccd_z11(df: pd.DataFrame, corner_detectors: list = CORNER_DETECTORS):
     # ── Hover ─────────────────────────────────────────────────────────────────
     p.add_tools(HoverTool(
         renderers=line_renderers,
-        mode="vline",
+        mode="mouse",
         tooltips=[
             ("Visit", "@visit"),
             ("Time", "@obs_start"),
