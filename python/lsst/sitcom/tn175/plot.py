@@ -25,6 +25,7 @@ __all__ = [
     "plot_fwhm_metrics",
     "plot_ccd_z4",
     "plot_ccd_z11",
+    "plot_dz_metrics",
     "plot_night_timeline_combined",
 ]
 
@@ -49,6 +50,11 @@ CCD_MEAN_COLORS = {
     "ccd_z11_mean": "#ff7f0e",
 }
 
+DZ_COLORS = {
+    "dz_1_4": "#6495ED",
+    "dz_2_4": "#B22222",
+}
+
 DETECTOR_COLORS = {det: Category10[4][i] for i, det in enumerate(CORNER_DETECTORS)}
 
 
@@ -67,7 +73,7 @@ def _setup_figure_and_data(df: pd.DataFrame):
     wheel_zoom = WheelZoomTool()
 
     p = figure(
-        width=1300, height=550,
+        width=1300, height=250,
         x_axis_type="datetime",
         title="Observatory Performance",
         tools=[
@@ -133,6 +139,7 @@ def plot_fwhm_metrics(df: pd.DataFrame):
         Bokeh figure with FWHM metrics plotted
     """
     df, source, p = _setup_figure_and_data(df)
+    p.yaxis.axis_label = ""
 
     line_renderers = []
 
@@ -208,6 +215,7 @@ def plot_ccd_z4(df: pd.DataFrame, corner_detectors: list = CORNER_DETECTORS):
         Bokeh figure with CCD Z4 data plotted
     """
     df, source, p = _setup_figure_and_data(df)
+    p.yaxis.axis_label = "Z4 [??]"
 
     # Recompute detector colors if different corner_detectors are provided
     detector_colors = (
@@ -272,6 +280,7 @@ def plot_ccd_z11(df: pd.DataFrame, corner_detectors: list = CORNER_DETECTORS):
         Bokeh figure with CCD Z11 data plotted
     """
     df, source, p = _setup_figure_and_data(df)
+    p.yaxis.axis_label = "Z11 [??]"
 
     # Recompute detector colors if different corner_detectors are provided
     detector_colors = (
@@ -319,12 +328,71 @@ def plot_ccd_z11(df: pd.DataFrame, corner_detectors: list = CORNER_DETECTORS):
     return p
 
 
-def plot_night_timeline_combined(df: pd.DataFrame, corner_detectors: list = CORNER_DETECTORS):
+def plot_dz_metrics(df: pd.DataFrame):
     """
-    Create a combined plot with three subplots stacked vertically:
-    top - FWHM metrics, middle - CCD Z4, bottom - CCD Z11.
+    Plot DZ metrics (dz_1_4, dz_2_4).
     
-    The three plots share an x-axis range, so zooming in one zooms all three.
+    Parameters
+    ----------
+    df : pd.DataFrame
+        DataFrame containing observation data with columns:
+        obs_start, band, dz_1_4, dz_2_4
+    
+    Returns
+    -------
+    bokeh.plotting.Figure
+        Bokeh figure with DZ metrics plotted
+    """
+    df, source, p = _setup_figure_and_data(df)
+    p.yaxis.axis_label = "Double Zernikes [??]"
+
+    line_renderers = []
+
+    for col, color in DZ_COLORS.items():
+        r = p.line(
+            x="obs_start_ms", y=col, source=source,
+            line_color=color, line_width=1.8, line_alpha=0.5,
+            muted_alpha=0.05, legend_label=col,
+        )
+        p.scatter(
+            x="obs_start_ms", y=col, source=source,
+            marker="circle", size=4, color=color,
+            muted_alpha=0.05, legend_label=col,
+        )
+        line_renderers.append(r)
+
+    # ── Hover ─────────────────────────────────────────────────────────────────
+    p.add_tools(HoverTool(
+        renderers=line_renderers,
+        mode="mouse",
+        tooltips=[
+            ("Visit", "@visit"),
+            ("Time", "@obs_start"),
+            ("Band", "@band"),
+            ("DZ 1/4", "@dz_1_4{0.000}"),
+            ("DZ 2/4", "@dz_2_4{0.000}"),
+        ],
+    ))
+
+    # ── Legend ────────────────────────────────────────────────────────────────
+    if p.legend:
+        legend = p.legend[0]
+        p.add_layout(legend, 'right')
+        legend.location = "top_right"
+        legend.click_policy = "mute"
+        legend.label_text_font_size = "10px"
+        legend.spacing = 2
+        legend.background_fill_alpha = 0.8
+
+    return p
+
+
+def plot_night_timeline_combined(df: pd.DataFrame, corner_detectors: list = CORNER_DETECTORS, day_obs=None):
+    """
+    Create a combined plot with four subplots stacked vertically:
+    top - FWHM metrics, second - CCD Z4, third - CCD Z11, bottom - DZ metrics.
+    
+    The four plots share an x-axis range, so zooming in one zooms all four.
     A vertical crosshair cursor is synchronized across all plots.
     
     Parameters
@@ -333,34 +401,61 @@ def plot_night_timeline_combined(df: pd.DataFrame, corner_detectors: list = CORN
         DataFrame containing observation data
     corner_detectors : list, optional
         List of detector IDs to plot. Default is [191, 195, 199, 203]
+    day_obs : str, optional
+        Day-of-observation label to embed in the figure title.
     
     Returns
     -------
     bokeh.layouts.Column
-        A gridplot layout with the three vertically stacked plots
+        A gridplot layout with the four vertically stacked plots
     """
     # Create individual plots with reduced height
     p_fwhm = plot_fwhm_metrics(df)
     p_z4 = plot_ccd_z4(df, corner_detectors)
     p_z11 = plot_ccd_z11(df, corner_detectors)
-    
-    # Reduce individual plot heights
-    p_fwhm.height = 300
-    p_z4.height = 300
-    p_z11.height = 300
-    
+    p_dz = plot_dz_metrics(df)
+
+    # Update the title on the top plot (only)
+    if day_obs is not None:
+        p_fwhm.title.text = f"Filter Offset Investigation\n PSF Gradients accross the Field\n day_obs = {day_obs}"
+    else:
+        p_fwhm.title.text = "Filter Offset Investigation\n PSF Gradients accross the Field"
+
+    # Remove x-axis labels for the top three plots
+    p_fwhm.xaxis.axis_label = ""
+    p_z4.xaxis.axis_label = ""
+    p_z11.xaxis.axis_label = ""
+
+    # Remove upper x-axis (visit seq) from the bottom three plots
+    p_z4.above = []
+    p_z11.above = []
+    p_dz.above = []
+
+    # Hide titles for the bottom three plots
+    p_z4.title.text = ""
+    p_z11.title.text = ""
+    p_dz.title.text = ""
+
+    # Reduce individual plot heights (60% of previous size)
+    p_fwhm.height = 250
+    p_z4.height = 250
+    p_z11.height = 250
+    p_dz.height = 250
+
     # Link x-axis ranges so zooming in one plot affects the others
     p_z4.x_range = p_fwhm.x_range
     p_z11.x_range = p_fwhm.x_range
+    p_dz.x_range = p_fwhm.x_range
     
     # Add crosshair tool to each plot for synchronized vertical cursor
     p_fwhm.add_tools(CrosshairTool(dimensions="height"))
     p_z4.add_tools(CrosshairTool(dimensions="height"))
     p_z11.add_tools(CrosshairTool(dimensions="height"))
+    p_dz.add_tools(CrosshairTool(dimensions="height"))
     
-    # Create grid layout with the three plots stacked vertically
+    # Create grid layout with the four plots stacked vertically
     grid = gridplot(
-        [[p_fwhm], [p_z4], [p_z11]],
+        [[p_fwhm], [p_z4], [p_z11], [p_dz]],
         toolbar_location="right",
         merge_tools=True,
     )

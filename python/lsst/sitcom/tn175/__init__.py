@@ -27,6 +27,6 @@ except ImportError:
     __fingerprint__ = "? *"
     __dependency_versions__ = {}  # type: ignore
 
-
+from . import plot  # noqa: F401
 from . import query  # noqa: F401
 from . import utils  # noqa: F401

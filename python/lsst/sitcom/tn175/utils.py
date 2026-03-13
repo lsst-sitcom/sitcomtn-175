@@ -22,9 +22,12 @@
 import pandas as pd
 import numpy as np
 
+from astropy.time import Time
+
 from lsst.summit.utils import getAirmassSeeingCorrection, getBandpassSeeingCorrection
 
 __all__ = [
+    "coerce_astropy_times",
     "convert_psf_sigma_to_fwhm",
 ]
 
@@ -32,6 +35,17 @@ __all__ = [
 SIGMA_TO_FWHM = 2 * np.sqrt(2 * np.log(2))
 PIXEL_SCALE_ARCSEC = 0.2  # arcsec / pixel (LSSTCam)
 CORNER_DETECTORS = (191, 192, 195, 196, 199, 200, 203, 204)
+
+
+def coerce_astropy_times(df: pd.DataFrame) -> pd.DataFrame:
+    """Convert any astropy Time columns to UTC pandas datetime."""
+    for col in df.columns:
+        sample = df[col].dropna().iloc[0] if df[col].notna().any() else None
+        if isinstance(sample, Time):
+            df[col] = pd.to_datetime(
+                df[col].apply(lambda t: t.utc.to_value("datetime64") if pd.notna(t) else pd.NaT)
+            )
+    return df
 
 
 def convert_psf_sigma_to_fwhm(psf_sigma: pd.Series, airmass: pd.Series, band_p: pd.Series) -> pd.Series:
@@ -122,3 +136,38 @@ def group_rows_by_detector(df: pd.DataFrame) -> pd.DataFrame:
     result = result[["exp_id"] + [col for col in result.columns if col != "exp_id"]]
 
     return result
+
+
+def merge_double_zernikes(
+    cdb_table: pd.DataFrame,
+    dz_table: pd.DataFrame,
+) -> pd.DataFrame:
+    """
+    Merge double Zernike measurements into the per-visit cdb_table.
+
+    Parameters
+    ----------
+    cdb_table : pd.DataFrame
+        Per-visit observatory table with visit as index.
+    dz_table : pd.DataFrame
+        Double Zernike table with a 'visit' column.
+
+    Returns
+    -------
+    pd.DataFrame
+        Merged table with visit as index and double Zernike columns appended.
+    """
+    # Columns that exist in both tables — no need to bring them in again
+    shared_cols = set(cdb_table.reset_index().columns) & set(dz_table.columns)
+    dz_cols_to_merge = [c for c in dz_table.columns if c not in shared_cols - {"visit"}]
+
+    merged = cdb_table.reset_index().merge(
+        dz_table[dz_cols_to_merge],
+        on="visit",
+        how="left",  # keep all visits in cdb_table; NaN where no dz measurement exists
+    ).set_index("visit")
+
+    # Ensure datetime columns are in UTC pandas datetime format
+    merged = coerce_astropy_times(merged)
+
+    return merged
